@@ -63,14 +63,29 @@ if opcion == "🔍 Palabras clave de riesgo":
     st.subheader("👥 Comentarios con riesgo identificado")
     st.dataframe(df_riesgo[['id_docente', 'id_asignatura', 'comentarios', 'categorias_riesgo']])
 
-    palabra = st.text_input("🔍 Buscar palabra específica en comentarios con riesgo:")
-    if palabra:
-        coincidencias = df_riesgo[df_riesgo['comentarios'].str.contains(palabra.lower(), na=False)]
+    st.subheader("🔎 Búsqueda dentro de comentarios con riesgo")
+    palabra_riesgo = st.text_input("🔍 Escribe una palabra para buscar entre los comentarios con riesgo:")
+    if palabra_riesgo:
+        coincidencias = df_riesgo[df_riesgo['comentarios'].str.contains(palabra_riesgo.lower(), na=False)]
         if not coincidencias.empty:
             st.success(f"Se encontraron {len(coincidencias)} coincidencias.")
             st.dataframe(coincidencias[['id_docente', 'comentarios', 'categorias_riesgo']])
         else:
             st.warning("No se encontraron coincidencias.")
+
+    st.subheader("📌 Búsqueda en todos los comentarios")
+    palabra_general = st.text_input("📌 Palabra a buscar en todos los comentarios:")
+    if palabra_general:
+        df['comentarios'] = df['comentarios'].astype(str)
+        df['coincide_palabra'] = df['comentarios'].str.contains(palabra_general, case=False, na=False)
+        df_coincidencias = df[df['coincide_palabra']].copy()
+
+        if df_coincidencias.empty:
+            st.warning(f"❌ No se encontró la palabra '{palabra_general}' en ningún comentario.")
+        else:
+            st.success(f"✅ Se encontraron {len(df_coincidencias)} coincidencias.")
+            st.dataframe(df_coincidencias[["id_docente", "id_asignatura", "comentarios"]],
+                         use_container_width=True)
 
 # === MÓDULO 2: Análisis por docente ===
 elif opcion == "👨‍🏫 Análisis por docente":
