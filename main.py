@@ -133,47 +133,16 @@ elif opcion == "📊 Ranking por severidad":
 
     id_min = int(df['id_docente'].min())
     id_max = int(df['id_docente'].max())
-    rango = st.slider("Selecciona rango de ID de docentes", min_value=id_min, max_value=id_max, value=(id_min, id_max))
 
-    df = df[(df['id_docente'] >= rango[0]) & (df['id_docente'] <= rango[1])]
-    df['comentario_valido'] = ~df['comentarios'].str.strip().isin(['.', '-', '', ' '])
-    df_validos = df[df['comentario_valido']].copy()
-    df_validos['comentario_limpio'] = df_validos['comentarios'].str.strip().str.lower().str.replace(r"[\.\-]", "", regex=True).str[:510]
+    st.sidebar.subheader("📊 Filtro por ID de docente")
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        id_inicio = st.number_input("Desde:", min_value=id_min, max_value=id_max, value=id_min)
+    with col2:
+        id_fin = st.number_input("Hasta:", min_value=id_min, max_value=id_max, value=id_max)
 
-    predicciones = modelo_sentimiento(df_validos['comentario_limpio'].tolist())
-    def mapear_sentimiento(label):
-        estrellas = int(label.split()[0])
-        if estrellas <= 2:
-            return "NEG"
-        elif estrellas == 3:
-            return "NEU"
-        else:
-            return "POS"
-    df_validos['sentimiento'] = [mapear_sentimiento(p['label']) for p in predicciones]
+    if id_inicio > id_fin:
+        st.warning("⚠️ El ID inicial no puede ser mayor que el ID final.")
+        st.stop()
 
-    resumen_list = []
-    for docente_id in df['id_docente'].unique():
-        sub = df[df['id_docente'] == docente_id]
-        sub_valid = df_validos[df_validos['id_docente'] == docente_id]
-        total_validos = len(sub_valid)
-        neg = (sub_valid['sentimiento'] == 'NEG').sum()
-        if total_validos > 0:
-            prop_neg = neg / total_validos
-            indice = prop_neg * np.log1p(neg)
-        else:
-            prop_neg = 0
-            indice = 0
-        resumen_list.append({
-            'id_docente': docente_id,
-            'asignaturas': sub['id_asignatura'].nunique(),
-            'alumnos': len(sub),
-            'comentarios_validos': total_validos,
-            'negativos': neg,
-            'neutros': (sub_valid['sentimiento'] == 'NEU').sum(),
-            'positivos': (sub_valid['sentimiento'] == 'POS').sum(),
-            'proporcion_negativa': round(prop_neg, 2),
-            'indice_severidad': round(indice, 4)
-        })
-
-    df_resumen = pd.DataFrame(resumen_list).sort_values(by='indice_severidad', ascending=False)
-    st.dataframe(df_resumen)
+    df = df[(df['id_docente'] >= id_inicio) & (df['id_docente'] <= id_fin)]  
